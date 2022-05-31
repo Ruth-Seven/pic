@@ -1,0 +1,52 @@
+#!/bin/bash
+imgs=`./qrsctl listprefix blog-pic-ruth ""`
+
+echo "There are $(echo "$imgs" | tail -n +3 | wc -l) pic"
+all=$(echo "$imgs" | tail -n +3 | wc -l)
+
+downloaded=0
+failTime=0
+
+
+echo "$imgs" | tail -n +3 | while read line
+do
+	printf "%-6d/%-6d  %s\n" $downloaded $all  $line
+	if test -f "$line"; then
+    		echo "$line exists."
+		downloaded=`expr $downloaded + 1`
+		#downloaded=((downloaded + 1))
+		continue
+	fi
+	
+	i=1
+	ERRCODE=1
+	
+	
+	savedFile=$(basename $downloaded)
+	
+	while [[ $ERRCODE -gt 0 && $i -lt 5  ]] 
+	do
+		if [ $i -gt 1 ]
+		then 
+			echo "Trying again($i)"
+		fi
+	
+        	./qrsctl get blog-pic-ruth "$line" "./$savedFile"
+   		ERRCODE=$?
+		i=`expr $i + 1`
+	done
+
+	if [ $i -gt 4 ]
+	then 
+	failList[$failTime]=$line
+	failTime=`expr $failTime + 1`
+	continue
+	fi
+	
+	downloaded=`expr $downloaded + 1`
+done
+
+
+echo "${failList[@]}"
+
+printf "Downloaded:%6d ; All:%6d" $downloaded $all
